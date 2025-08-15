@@ -8,6 +8,41 @@ This project implements a runtime security observability solution leveraging eBP
 The solution enriches these observability events with machine identity mapping (e.g., environment variables like OPENAI_API_KEY, mock mappings) and applies simple detection logic to flag suspicious behavior. The entire pipeline is centered around Tetragon’s eBPF runtime instrumentation with a custom Python collector that consumes, enriches, and analyzes event streams.
 
 
+# UPDATE
+
+Do not run the tetragon as a system service for running the updated script. Stop the service if running already:
+
+> [!IMPORTANT]
+> The following scripts were tested on Python 3.12. Make sure the python binary available on your system is at the same location as mentioned in the newly added `tcp-data-monitor.yaml` file. If not, do your due diligence, and modify the policy file with the updated location of your Python binary on your system. 
+
+`sudo systemctl stop tetragon`
+
+Run the tetragon daemon in a seperate terminal: `sudo /usr/local/bin/tetragon --tracing-policy /home/shakir/StackGuard-demo/tetragon-policies/tcp-data-monitor.yaml --export-filename /var/log/tetragon/tetragon.log`
+
+
+In a seperate terminal, verify the policy has been loaded: `sudo tetra tracingpolicy list`
+```bash
+shakir@ubuntu:~/StackGuard-demo$ sudo tetra tracingpolicy list
+ID   NAME               STATE     FILTERID   NAMESPACE   SENSORS          KERNELMEMORY   MODE
+1    tcp-data-monitor   loading   0          (global)    generic_kprobe   0 B            unknown
+shakir@ubuntu:~/StackGuard-demo$
+```
+
+Now run this command to start monitoring for network traffic, and print only the output from the policy we just loaded: `sudo tetra getevents --policy-names tcp-data-monitor | jq`
+
+
+Now in another seperate terminal, run the chatbot.py python script. Type `sudo make` to place it to the correct location automatically (/usr/local/bin/chatbot).
+
+> [!TIP]
+> The location of the python script or the name is irrelevant as of now. Since we're monitoring all network communications happening via the python3.12 binary.
+
+
+Check the terminal where you ran the `tetra getevents` command to see all network traffic happening via the chatbot.
+
+> [!CAUTION]
+> Since the chatbot.py script is making a get request to `https://google.com/`, all communication is TLS encrypted, and hence being able to search through the network responses or applying regex to look for patterns is not possible. 
+
+
 # Tech Stack
 
 ## Tetragon
